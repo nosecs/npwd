@@ -1,8 +1,4 @@
-import {
-  Message,
-  MessageConversation,
-  UnformattedMessageConversation,
-} from '../../../typings/messages';
+import { Message, UnformattedMessageConversation } from '../../../typings/messages';
 import { config } from '../server';
 import { ResultSetHeader } from 'mysql2';
 import DbInterface from '../db/db_wrapper';
@@ -34,7 +30,7 @@ export class _MessagesDB {
     const [results] = await DbInterface._rawExec(query, [
       userIdentifier,
       author,
-      message,
+      message || '',
       conversationId,
       isEmbed,
       embed,
