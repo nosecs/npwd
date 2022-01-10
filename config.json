@@ -5,14 +5,14 @@
     "exportFunction": "myCheckerFunction"
   },
   "general": {
-    "useResourceIntegration": false,
+    "useResourceIntegration": true,
     "toggleKey": "f1",
     "toggleCommand": "phone"
   },
   "database": {
     "useIdentifierPrefix": false,
-    "playerTable": "users",
-    "identifierColumn": "identifier",
+    "playerTable": "players",
+    "identifierColumn": "citizenid",
     "identifierType": "license",
     "profileQueries": true,
     "phoneNumberColumn": "phone_number"
