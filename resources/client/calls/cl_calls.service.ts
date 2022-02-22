@@ -1,3 +1,4 @@
+import { checkHasPhone } from '../cl_main';
 import { IAlertProps } from '../../../typings/alerts';
 import { ActiveCall, CallEvents, CallRejectReasons } from '../../../typings/call';
 
@@ -30,24 +31,28 @@ export class CallService {
     // we don't want to reset our UI if we're in a call already.
     if (this.isInCall()) return;
     this.openCallModal(false);
-    CallService.sendCallAction(CallEvents.SET_CALLER, null);
+    CallService.sendCallAction(CallEvents.SET_CALL_INFO, null);
   }
 
-  handleStartCall(
+  async handleStartCall(
     transmitter: string,
     receiver: string,
     isTransmitter: boolean,
     isUnavailable: boolean,
   ) {
     // If we're already in a call we want to automatically reject
-    if (this.isInCall())
-      return emitNet(CallEvents.REJECTED, transmitter, CallRejectReasons.BUSY_LINE);
+    if (this.isInCall() || !(await checkHasPhone()))
+      return emitNet(
+        CallEvents.REJECTED,
+        { transmitterNumber: transmitter },
+        CallRejectReasons.BUSY_LINE,
+      );
 
     this.openCallModal(true);
 
     SendNUIMessage({
       app: 'CALL',
-      method: CallEvents.SET_CALLER,
+      method: CallEvents.SET_CALL_INFO,
       data: {
         active: true,
         transmitter: transmitter,
@@ -62,7 +67,7 @@ export class CallService {
   handleCallAccepted(callData: ActiveCall) {
     this.currentCall = callData.channelId;
     exp['pma-voice'].setCallChannel(callData.channelId);
-    CallService.sendCallAction<ActiveCall>(CallEvents.SET_CALLER, callData);
+    CallService.sendCallAction<ActiveCall>(CallEvents.SET_CALL_INFO, callData);
   }
 
   handleEndCall() {
@@ -70,7 +75,7 @@ export class CallService {
     exp['pma-voice'].setCallChannel(0);
     this.openCallModal(false);
 
-    CallService.sendCallAction<null>(CallEvents.SET_CALLER, null);
+    CallService.sendCallAction<null>(CallEvents.SET_CALL_INFO, null);
   }
 
   handleSendAlert(alert: IAlertProps) {

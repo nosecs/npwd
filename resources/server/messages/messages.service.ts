@@ -29,7 +29,7 @@ class _MessagesService {
 
       resp({ status: 'ok', data: messageConversations });
     } catch (e) {
-      resp({ status: 'error', errorMsg: 'DB_ERROR' });
+      resp({ status: 'error', errorMsg: 'GENERIC_DB_ERROR' });
       messagesLogger.error(`Failed to fetch messages groups, ${e.message}`);
     }
   }
@@ -68,10 +68,14 @@ class _MessagesService {
 
       resp({
         status: 'ok',
-        data: { conversation_id: result.conversationId, phoneNumber: result.phoneNumber },
+        data: {
+          conversation_id: result.conversationId,
+          phoneNumber: result.phoneNumber,
+          updatedAt: Date.now(),
+        },
       });
     } catch (e) {
-      resp({ status: 'error', errorMsg: 'DB_ERROR' });
+      resp({ status: 'error', errorMsg: 'GENERIC_DB_ERROR' });
 
       messagesLogger.error(`Failed to create message group, ${e.message}`, {
         source: reqObj.source,
@@ -90,11 +94,13 @@ class _MessagesService {
         reqObj.data.page,
       );
 
+      await this.handleSetMessageRead(reqObj.source, reqObj.data.conversationId);
+
       messages.sort((a, b) => a.id - b.id);
 
       resp({ status: 'ok', data: messages });
     } catch (e) {
-      resp({ status: 'error', errorMsg: 'DB_ERROR' });
+      resp({ status: 'error', errorMsg: 'GENERIC_DB_ERROR' });
       messagesLogger.error(`Failed to fetch messages, ${e.message}`, {
         source: reqObj.source,
       });
@@ -114,6 +120,13 @@ class _MessagesService {
         authorPhoneNumber,
         messageData.conversationId,
         messageData.message,
+        messageData.is_embed,
+        messageData.embed,
+      );
+
+      await this.messagesDB.setMessageUnread(
+        messageData.conversationId,
+        messageData.tgtPhoneNumber,
       );
 
       resp({
@@ -123,6 +136,9 @@ class _MessagesService {
           conversation_id: messageData.conversationId,
           author: authorPhoneNumber,
           id: messageId,
+          message: messageData.message,
+          embed: messageData.embed,
+          is_embed: messageData.is_embed,
         },
       });
 
@@ -131,7 +147,9 @@ class _MessagesService {
         if (participantId !== player.getPhoneNumber()) {
           const participantIdentifier = await PlayerService.getIdentifierByPhoneNumber(
             participantId,
+            true,
           );
+
           const participantPlayer = PlayerService.getPlayerFromIdentifier(participantIdentifier);
 
           if (participantPlayer) {
@@ -140,6 +158,8 @@ class _MessagesService {
               conversationName: player.getPhoneNumber(),
               conversationId: messageData.conversationId,
               message: messageData.message,
+              is_embed: messageData.is_embed,
+              embed: messageData.embed,
             });
           }
         }
@@ -152,11 +172,29 @@ class _MessagesService {
     }
   }
 
+  // I didn't bother creating a new interface. Will do it soonTM.
+  async handleOnMessageSendResponse(reqObj: any) {
+    const messageData = reqObj.data;
+
+    const messageId = await this.messagesDB.createMessage(
+      messageData.author,
+      messageData.author,
+      messageData.conversation_id,
+      messageData.message,
+    );
+
+    const respData = {
+      ...messageData,
+      id: messageId,
+    };
+
+    emitNet(MessageEvents.SEND_MESSAGE_SUCCESS, reqObj.source, respData);
+  }
+
   async handleSetMessageRead(src: number, groupId: string) {
     try {
-      const identifier = PlayerService.getIdentifier(src);
+      const identifier = PlayerService.getPlayer(src).getPhoneNumber();
       await this.messagesDB.setMessageRead(groupId, identifier);
-      emitNet(MessageEvents.FETCH_MESSAGE_CONVERSATIONS, src);
     } catch (e) {
       messagesLogger.error(`Failed to set message as read, ${e.message}`, {
         source: src,
@@ -176,7 +214,7 @@ class _MessagesService {
       }
       resp({ status: 'ok' });
     } catch (e) {
-      resp({ status: 'error', errorMsg: 'DB_ERROR' });
+      resp({ status: 'error', errorMsg: 'GENERIC_DB_ERROR' });
       messagesLogger.error(`Failed to delete conversation, ${e.message}`, {
         source: reqObj.source,
       });
@@ -188,7 +226,7 @@ class _MessagesService {
       await this.messagesDB.deleteMessage(reqObj.data);
       resp({ status: 'ok' });
     } catch (e) {
-      resp({ status: 'error', errorMsg: 'DB_ERROR' });
+      resp({ status: 'error', errorMsg: 'GENERIC_DB_ERROR' });
       messagesLogger.error(`Failed to delete message, ${e.message}`, {
         source: reqObj.source,
       });

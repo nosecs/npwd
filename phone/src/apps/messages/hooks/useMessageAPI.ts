@@ -1,4 +1,4 @@
-import { fetchNui } from '@utils/fetchNui';
+import fetchNui from '@utils/fetchNui';
 import {
   Message,
   MessageConversationResponse,
@@ -15,9 +15,11 @@ import { messageState, useSetMessages } from './state';
 import { useContactActions } from '../../contacts/hooks/useContactActions';
 import { useRecoilValueLoadable } from 'recoil';
 import { MockConversationServerResp } from '../utils/constants';
+import { useMyPhoneNumber } from '../../../os/simcard/hooks/useMyPhoneNumber';
 
 type UseMessageAPIProps = {
-  sendMessage: ({ conversationId, message }: PreDBMessage) => void;
+  sendMessage: ({ conversationId, message, tgtPhoneNumber }: PreDBMessage) => void;
+  sendEmbedMessage: ({ conversationId, embed }: PreDBMessage) => void;
   deleteMessage: (message: Message) => void;
   addConversation: (targetNumber: string) => void;
   deleteConversation: (conversationIds: string[]) => void;
@@ -39,11 +41,15 @@ export const useMessageAPI = (): UseMessageAPIProps => {
   const { getPictureByNumber, getDisplayByNumber } = useContactActions();
   const setMessages = useSetMessages();
 
+  const myPhoneNumber = useMyPhoneNumber();
+
   const sendMessage = useCallback(
-    ({ conversationId, message }: PreDBMessage) => {
+    ({ conversationId, message, tgtPhoneNumber }: PreDBMessage) => {
       fetchNui<ServerPromiseResp<Message>>(MessageEvents.SEND_MESSAGE, {
         conversationId,
         message,
+        tgtPhoneNumber,
+        sourcePhoneNumber: myPhoneNumber,
       }).then((resp) => {
         if (resp.status !== 'ok') {
           return addAlert({
@@ -55,7 +61,29 @@ export const useMessageAPI = (): UseMessageAPIProps => {
         updateLocalMessages(resp.data);
       });
     },
-    [updateLocalMessages, t, addAlert],
+    [updateLocalMessages, t, addAlert, myPhoneNumber],
+  );
+
+  const sendEmbedMessage = useCallback(
+    ({ conversationId, embed, tgtPhoneNumber }: PreDBMessage) => {
+      fetchNui<ServerPromiseResp<Message>, PreDBMessage>(MessageEvents.SEND_MESSAGE, {
+        conversationId,
+        embed: JSON.stringify(embed),
+        is_embed: true,
+        tgtPhoneNumber,
+        sourcePhoneNumber: myPhoneNumber,
+      }).then((resp) => {
+        if (resp.status !== 'ok') {
+          return addAlert({
+            message: t('MESSAGES.FEEDBACK.NEW_MESSAGE_FAILED'),
+            type: 'error',
+          });
+        }
+
+        updateLocalMessages(resp.data);
+      });
+    },
+    [t, updateLocalMessages, addAlert, myPhoneNumber],
   );
 
   const deleteMessage = useCallback(
@@ -114,6 +142,7 @@ export const useMessageAPI = (): UseMessageAPIProps => {
         updateLocalConversations({
           phoneNumber: resp.data.phoneNumber,
           conversation_id: resp.data.conversation_id,
+          updatedAt: resp.data.updatedAt,
           display,
           unread: 0,
           avatar,
@@ -183,5 +212,6 @@ export const useMessageAPI = (): UseMessageAPIProps => {
     deleteConversation,
     addConversation,
     fetchMessages,
+    sendEmbedMessage,
   };
 };

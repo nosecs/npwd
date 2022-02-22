@@ -5,8 +5,8 @@ import {
   MarketplaceListing,
   MarketplaceListingBase,
 } from '@typings/marketplace';
-import { fetchNui } from '../../../utils/fetchNui';
-import { isEnvBrowser } from '../../../utils/misc';
+import fetchNui from '@utils/fetchNui';
+import { isEnvBrowser } from '@utils/misc';
 
 const defaultData: MarketplaceListing[] = [
   {
@@ -41,9 +41,7 @@ export const listingState = atom<MarketplaceListing[]>({
         );
         return resp.data;
       } catch (e) {
-        if (isEnvBrowser()) {
-          return defaultData;
-        }
+        if (isEnvBrowser()) return defaultData;
         console.error(e);
         return [];
       }

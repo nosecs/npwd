@@ -1,5 +1,4 @@
-import React, { useCallback, useState } from 'react';
-import makeStyles from '@mui/styles/makeStyles';
+import React, { memo, useCallback, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import Modal from '../../../ui/components/Modal';
 import { IMAGE_DELIMITER } from '../utils/images';
@@ -14,48 +13,28 @@ import IconButtons from './buttons/IconButtons';
 import { usePhone } from '@os/phone/hooks/usePhone';
 import { getNewLineCount } from '../utils/message';
 import { NewTweet, TwitterEvents } from '@typings/twitter';
-import { fetchNui } from '../../../utils/fetchNui';
+import fetchNui from '@utils/fetchNui';
 import { ServerPromiseResp } from '@typings/common';
 import { useTranslation } from 'react-i18next';
 import { promiseTimeout } from '../../../utils/promiseTimeout';
 import { useSnackbar } from '@os/snackbar/hooks/useSnackbar';
 import { toggleKeys } from '../../../ui/components/Input';
+import { Box, styled } from '@mui/material';
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    zIndex: 10,
-    marginTop: '15px',
-    width: '90%',
-    display: 'flex',
-    flexFlow: 'column nowrap',
-    position: 'absolute',
-    top: '80px',
-  },
-  button: {
-    margin: 5,
-    marginTop: 20,
-  },
-  buttonsContainer: {
-    paddingBottom: '8px',
-    display: 'flex',
-    flexFlow: 'row nowrap',
-    justifyContent: 'space-between',
-    flex: '1 0 45px',
-  },
-  emojiPicker: {
-    background: 'none',
-    border: 'none',
-    boxShadow: 'none',
-  },
-}));
+const ButtonsContainer = styled(Box)({
+  paddingBottom: '8px',
+  display: 'flex',
+  flexFlow: 'row nowrap',
+  justifyContent: 'space-between',
+  flex: '1 0 45px',
+});
 
 interface Image {
   id: string;
   link: string;
 }
 
-export const AddTweetModal = () => {
-  const classes = useStyles();
+const AddTweetModal = () => {
   const { message, setMessage, modalVisible, setModalVisible } = useModal();
   const { ResourceConfig } = usePhone();
   const { addAlert } = useSnackbar();
@@ -176,7 +155,7 @@ export const AddTweetModal = () => {
         images={images}
         removeImage={removeImage}
       />
-      <div className={classes.buttonsContainer}>
+      <ButtonsContainer>
         <IconButtons
           onImageClick={
             images.length < ResourceConfig.twitter.maxImages ? toggleShowImagePrompt : null
@@ -189,9 +168,9 @@ export const AddTweetModal = () => {
           onPrimaryClick={showImagePrompt ? addImage : submitTweet}
           onCloseClick={showEmoji ? toggleShowEmoji : toggleShowImagePrompt}
         />
-      </div>
+      </ButtonsContainer>
     </Modal>
   );
 };
 
-export default AddTweetModal;
+export default memo(AddTweetModal);

@@ -5,11 +5,7 @@ import { APPS, IApp } from '../config/apps';
 import { SvgIconComponent } from '@mui/icons-material';
 import { useTheme } from '@mui/material';
 import { useSettingsValue } from '../../../apps/settings/hooks/useSettings';
-
-export interface IconSetObject {
-  custom: boolean;
-  name: string;
-}
+import { IconSetObject } from '@typings/settings';
 
 export const useApps = () => {
   const { icons } = useNotifications();
@@ -42,6 +38,7 @@ export const useApps = () => {
             <NotificationIcon htmlColor={theme.palette.text.primary} fontSize="small" />
           ),
           icon: <Icon />,
+          isDisabled: app.disable,
         };
       }
 
@@ -51,6 +48,7 @@ export const useApps = () => {
         NotificationIcon,
         notificationIcon: <NotificationIcon htmlColor={app.color} fontSize="small" />,
         icon: <Icon />,
+        isDisabled: app.disable,
       };
     });
   }, [icons, curIconSet, theme]);
